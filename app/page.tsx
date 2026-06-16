@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
-import { Search, Loader2, Star, MapPin, Phone, Globe, Clock, LogOut, ChevronDown } from "lucide-react";
+import { Search, Loader2, Star, MapPin, Phone, Globe, Clock, LogOut, Info } from "lucide-react";
 import { analyzePlace, AnalysisResult } from "@/lib/analyzer";
 import { ScoreCircle } from "@/components/ScoreCircle";
 import { MetricCard } from "@/components/MetricCard";
@@ -158,9 +158,26 @@ export default function Home() {
 
         {result && (
           <div className="space-y-4">
+            {/* Banner modo básico */}
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
+              <Info className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-amber-800">Análise parcial — Modo Básico</p>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  Esta análise usa dados públicos (Google Places API) e cobre {result.availablePoints} dos {result.totalPossiblePoints} pontos possíveis.
+                  A análise completa estará disponível após aprovação da Business Profile API.
+                </p>
+              </div>
+            </div>
+
             <div className="bg-white rounded-2xl shadow-sm p-6">
               <div className="flex flex-col md:flex-row gap-6 items-start">
-                <ScoreCircle score={result.overallScore} />
+                <div className="flex flex-col items-center gap-1">
+                  <ScoreCircle score={result.overallScore} />
+                  <p className="text-xs text-gray-400 text-center">
+                    sobre dados disponíveis<br />({result.availablePoints}/{result.totalPossiblePoints} pts)
+                  </p>
+                </div>
                 <div className="flex-1 space-y-3">
                   <div>
                     <h3 className="text-xl font-bold text-gray-900">{result.place.name}</h3>
@@ -224,13 +241,27 @@ export default function Home() {
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm p-6">
-              <h4 className="font-bold text-gray-800 mb-4">Pontuação Detalhada</h4>
+              <h4 className="font-bold text-gray-800 mb-4">Métricas Disponíveis</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {result.metrics.map((m) => (
                   <MetricCard key={m.id} metric={m} />
                 ))}
               </div>
             </div>
+
+            {result.pendingMetrics.length > 0 && (
+              <div className="bg-white rounded-2xl shadow-sm p-6">
+                <h4 className="font-bold text-gray-800 mb-1">Métricas Pendentes</h4>
+                <p className="text-xs text-gray-500 mb-4">
+                  Disponíveis após aprovação da Business Profile API — {result.pendingMetrics.reduce((s, m) => s + m.maxScore, 0)} pontos adicionais.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {result.pendingMetrics.map((m) => (
+                    <MetricCard key={m.id} metric={m} />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
