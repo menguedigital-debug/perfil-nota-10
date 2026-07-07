@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowLeft, Download, MapPin, Sparkles, Loader2 } from "lucide-react";
+import { ArrowLeft, Download, MapPin, Sparkles, Loader2, Share2 } from "lucide-react";
 import Link from "next/link";
 import { analyzePlace, enrichWithGmbData, type AnalysisResult, type PlaceDetails } from "@/lib/analyzer";
 import { ScoreCircle } from "@/components/ScoreCircle";
@@ -184,6 +184,12 @@ export default function AnalisePage() {
             <Download className="h-4 w-4" />
             Baixar PDF
           </PDFDownloadButton>
+          <button
+            onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/relatorio/${placeId}`); }}
+            className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-medium text-foreground transition-all hover:bg-surface-elevated">
+            <Share2 className="h-4 w-4" />
+            Link para o cliente
+          </button>
           {session && (
             <Link href="/dashboard" className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-medium text-foreground transition-all hover:bg-surface-elevated">
               Ver no dashboard
