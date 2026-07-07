@@ -26,7 +26,14 @@ export default function AnalisePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [locations, setLocations] = useState<GmbLocation[]>([]);
+  const [linkCopied, setLinkCopied] = useState(false);
   const initialized = useRef(false);
+
+  function handleCopyLink() {
+    navigator.clipboard.writeText(`${window.location.origin}/relatorio/${placeId}`);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2500);
+  }
 
   useEffect(() => {
     if (!session?.accessToken) return;
@@ -185,10 +192,10 @@ export default function AnalisePage() {
             Baixar PDF
           </PDFDownloadButton>
           <button
-            onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/relatorio/${placeId}`); }}
-            className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-medium text-foreground transition-all hover:bg-surface-elevated">
+            onClick={handleCopyLink}
+            className={`inline-flex items-center gap-2 rounded-xl border px-5 py-2.5 text-sm font-medium transition-all ${linkCopied ? "border-primary/50 bg-primary/10 text-primary" : "border-border bg-card text-foreground hover:bg-surface-elevated"}`}>
             <Share2 className="h-4 w-4" />
-            Link para o cliente
+            {linkCopied ? "Link copiado!" : "Link para o cliente"}
           </button>
           {session && (
             <Link href="/dashboard" className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-medium text-foreground transition-all hover:bg-surface-elevated">
