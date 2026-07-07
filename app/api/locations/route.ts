@@ -23,7 +23,7 @@ export async function GET() {
 
   // Buscar localizações da conta
   const locationsRes = await fetch(
-    `https://mybusinessbusinessinformation.googleapis.com/v1/${accountName}/locations?readMask=name,title,phoneNumbers,websiteUri,regularHours,specialHours,categories,profile,metadata,storefrontAddress`,
+    `https://mybusinessbusinessinformation.googleapis.com/v1/${accountName}/locations?readMask=name,title,phoneNumbers,websiteUri,regularHours,specialHours,categories,profile,metadata,storefrontAddress&pageSize=100`,
     { headers: { Authorization: `Bearer ${session.accessToken}` } }
   );
   const locationsData = await locationsRes.json();

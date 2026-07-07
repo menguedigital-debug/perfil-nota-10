@@ -1,270 +1,176 @@
 "use client";
-import { useState, useEffect } from "react";
-import { useSession, signIn, signOut } from "next-auth/react";
-import { Search, Loader2, Star, MapPin, Phone, Globe, Clock, LogOut, Info } from "lucide-react";
-import { analyzePlace, AnalysisResult } from "@/lib/analyzer";
-import { ScoreCircle } from "@/components/ScoreCircle";
-import { MetricCard } from "@/components/MetricCard";
+import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { Search, MapPin, TrendingUp, Shield, FileText, ArrowRight, Loader2 } from "lucide-react";
+import { AppHeader } from "@/components/AppHeader";
 
-interface GmbLocation {
+interface SearchResult {
+  placeId: string;
   name: string;
-  title: string;
-  storefrontAddress?: { addressLines?: string[] };
+  address: string;
+  rating?: number;
 }
 
-export default function Home() {
-  const { data: session, status } = useSession();
+export default function LandingPage() {
+  const router = useRouter();
+  const { status } = useSession();
   const [query, setQuery] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<AnalysisResult | null>(null);
-  const [error, setError] = useState("");
-  const [locations, setLocations] = useState<GmbLocation[]>([]);
-  const [loadingLocations, setLoadingLocations] = useState(false);
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [focused, setFocused] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (session?.accessToken) {
-      setLoadingLocations(true);
-      fetch("/api/locations")
-        .then((r) => r.json())
-        .then((d) => setLocations(d.locations ?? []))
-        .catch(() => {})
-        .finally(() => setLoadingLocations(false));
-    }
-  }, [session]);
+    if (status === "authenticated") router.prefetch("/dashboard");
+  }, [status, router]);
 
-  async function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
-    if (!query.trim()) return;
-    setLoading(true);
-    setError("");
-    setResult(null);
-    try {
-      const res = await fetch(`/api/places?q=${encodeURIComponent(query)}`);
-      if (!res.ok) {
-        const data = await res.json();
-        setError(data.error ?? "Erro ao buscar negócio.");
-        return;
-      }
-      const place = await res.json();
-      setResult(analyzePlace(place));
-    } catch {
-      setError("Erro de conexão. Tente novamente.");
-    } finally {
-      setLoading(false);
-    }
+  function handleQueryChange(text: string) {
+    setQuery(text);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (text.trim().length < 2) { setResults([]); return; }
+    debounceRef.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await fetch(`/api/places/search?q=${encodeURIComponent(text)}`);
+        if (res.ok) setResults((await res.json()).results ?? []);
+      } catch { /* ignore */ }
+      finally { setSearching(false); }
+    }, 350);
+  }
+
+  function selectResult(placeId: string) {
+    setFocused(false);
+    router.push(`/analise/${placeId}`);
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <header className="bg-white shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-indigo-600 rounded-lg flex items-center justify-center">
-              <Star className="w-5 h-5 text-white fill-white" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-gray-900">Perfil Nota 10</h1>
-              <p className="text-xs text-gray-500">Análise de Google Meu Negócio</p>
-            </div>
-          </div>
+    <div className="min-h-screen bg-background">
+      <AppHeader />
+
+      {/* Hero */}
+      <section className="relative overflow-hidden px-4 pt-16 pb-24 sm:px-6 lg:px-8">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -top-40 left-1/2 h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-primary/10 blur-[100px]" />
+        </div>
+
+        <div className="relative mx-auto max-w-4xl text-center">
           <div>
-            {status === "authenticated" ? (
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-gray-600 hidden md:block">{session.user?.email}</span>
-                <button
-                  onClick={() => signOut()}
-                  className="flex items-center gap-1 text-sm text-gray-500 hover:text-red-500 transition"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Sair
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => signIn("google")}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition flex items-center gap-2"
-              >
-                <svg className="w-4 h-4" viewBox="0 0 24 24"><path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-                Entrar com Google
-              </button>
-            )}
+            <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary">
+              <TrendingUp className="h-4 w-4" />
+              Análise gratuita do seu perfil Google
+            </span>
           </div>
-        </div>
-      </header>
 
-      <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-        {/* Perfis GMB do usuário logado */}
-        {status === "authenticated" && (
-          <div className="bg-white rounded-2xl shadow-sm p-6">
-            <h2 className="text-lg font-bold text-gray-800 mb-3">Seus perfis no Google</h2>
-            {loadingLocations ? (
-              <div className="flex items-center gap-2 text-gray-400 text-sm">
-                <Loader2 className="w-4 h-4 animate-spin" /> Carregando perfis...
-              </div>
-            ) : locations.length === 0 ? (
-              <p className="text-sm text-gray-500">Nenhum perfil GMB encontrado nesta conta.</p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {locations.map((loc) => (
-                  <button
-                    key={loc.name}
-                    onClick={() => setQuery(loc.title)}
-                    className="text-left border border-gray-100 rounded-xl p-4 hover:border-indigo-300 hover:bg-indigo-50 transition"
-                  >
-                    <p className="font-medium text-gray-800 text-sm">{loc.title}</p>
-                    {loc.storefrontAddress?.addressLines?.[0] && (
-                      <p className="text-xs text-gray-400 mt-1">{loc.storefrontAddress.addressLines[0]}</p>
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+          <h1 className="mt-6 font-display text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+            Descubra a <span className="text-primary">nota</span> do seu
+            <br />
+            Perfil Google
+          </h1>
 
-        <div className="bg-white rounded-2xl shadow-sm p-6">
-          {status !== "authenticated" && (
-            <div className="mb-4 p-4 bg-indigo-50 rounded-xl flex items-start gap-3">
-              <Star className="w-5 h-5 text-indigo-500 mt-0.5 shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-indigo-800">Entre com Google para dados completos</p>
-                <p className="text-xs text-indigo-600 mt-0.5">Conecte sua conta e acesse análise completa do seu perfil GMB.</p>
-              </div>
-            </div>
-          )}
-          <h2 className="text-xl font-bold text-gray-800 mb-1">Analise um perfil</h2>
-          <p className="text-sm text-gray-500 mb-4">
-            Digite o nome do negócio ou endereço para analisar.
+          <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
+            Analisamos 15 métricas do seu Google Business Profile e mostramos
+            exatamente o que precisa melhorar para atrair mais clientes.
           </p>
-          <form onSubmit={handleSearch} className="flex gap-2">
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Ex: Raul Parada Motos Camboriú"
-              className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-            />
-            <button
-              type="submit"
-              disabled={loading}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl flex items-center gap-2 text-sm font-medium transition disabled:opacity-60"
-            >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-              Analisar
-            </button>
-          </form>
-          {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
-        </div>
 
-        {result && (
-          <div className="space-y-4">
-            {/* Banner modo básico */}
-            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
-              <Info className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-semibold text-amber-800">Análise parcial — Modo Básico</p>
-                <p className="text-xs text-amber-700 mt-0.5">
-                  Esta análise usa dados públicos (Google Places API) e cobre {result.availablePoints} dos {result.totalPossiblePoints} pontos possíveis.
-                  A análise completa estará disponível após aprovação da Business Profile API.
-                </p>
+          {/* Search box */}
+          <div className="mx-auto mt-10 max-w-xl">
+            <div className="relative">
+              <div className={`flex items-center gap-3 rounded-2xl border bg-card px-4 py-4 transition-all duration-300 ${focused ? "border-primary/50 shadow-[0_0_30px_oklch(0.52_0.2_270/0.15)]" : "border-border"}`}>
+                {searching ? (
+                  <Loader2 className="h-5 w-5 shrink-0 text-muted-foreground animate-spin" />
+                ) : (
+                  <Search className="h-5 w-5 shrink-0 text-muted-foreground" />
+                )}
+                <input
+                  type="text"
+                  placeholder="Nome do negócio ou endereço..."
+                  value={query}
+                  onChange={e => handleQueryChange(e.target.value)}
+                  onFocus={() => setFocused(true)}
+                  onBlur={() => setTimeout(() => setFocused(false), 200)}
+                  className="w-full bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none text-base"
+                />
               </div>
-            </div>
 
-            <div className="bg-white rounded-2xl shadow-sm p-6">
-              <div className="flex flex-col md:flex-row gap-6 items-start">
-                <div className="flex flex-col items-center gap-1">
-                  <ScoreCircle score={result.overallScore} />
-                  <p className="text-xs text-gray-400 text-center">
-                    sobre dados disponíveis<br />({result.availablePoints}/{result.totalPossiblePoints} pts)
-                  </p>
-                </div>
-                <div className="flex-1 space-y-3">
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900">{result.place.name}</h3>
-                    {result.place.rating && (
-                      <div className="flex items-center gap-1 mt-1">
-                        <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                        <span className="text-sm font-medium">{result.place.rating.toFixed(1)}</span>
-                        <span className="text-sm text-gray-400">({result.place.user_ratings_total} avaliações)</span>
+              {results.length > 0 && focused && (
+                <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
+                  {results.map(r => (
+                    <button key={r.placeId} onMouseDown={() => selectResult(r.placeId)}
+                      className="flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-elevated border-b border-border last:border-0">
+                      <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-foreground truncate">{r.name}</p>
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">{r.address}</p>
                       </div>
-                    )}
-                  </div>
-                  <div className="space-y-1 text-sm text-gray-600">
-                    {result.place.formatted_address && (
-                      <div className="flex items-start gap-2">
-                        <MapPin className="w-4 h-4 shrink-0 mt-0.5 text-gray-400" />
-                        <span>{result.place.formatted_address}</span>
-                      </div>
-                    )}
-                    {result.place.formatted_phone_number && (
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4 shrink-0 text-gray-400" />
-                        <span>{result.place.formatted_phone_number}</span>
-                      </div>
-                    )}
-                    {result.place.website && (
-                      <div className="flex items-center gap-2">
-                        <Globe className="w-4 h-4 shrink-0 text-gray-400" />
-                        <a
-                          href={result.place.website}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-indigo-600 hover:underline truncate"
-                        >
-                          {result.place.website}
-                        </a>
-                      </div>
-                    )}
-                    {result.place.opening_hours && (
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 shrink-0 text-gray-400" />
-                        <span>{result.place.opening_hours.open_now ? "Aberto agora" : "Fechado agora"}</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex gap-4 pt-2">
-                    <div className="text-center">
-                      <p className="text-xl font-bold text-red-500">{result.weakCount}</p>
-                      <p className="text-xs text-gray-500">Fraco</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xl font-bold text-amber-500">{result.fairCount}</p>
-                      <p className="text-xs text-gray-500">Razoável</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xl font-bold text-green-500">{result.goodCount}</p>
-                      <p className="text-xs text-gray-500">Bom</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl shadow-sm p-6">
-              <h4 className="font-bold text-gray-800 mb-4">Métricas Disponíveis</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {result.metrics.map((m) => (
-                  <MetricCard key={m.id} metric={m} />
-                ))}
-              </div>
-            </div>
-
-            {result.pendingMetrics.length > 0 && (
-              <div className="bg-white rounded-2xl shadow-sm p-6">
-                <h4 className="font-bold text-gray-800 mb-1">Métricas Pendentes</h4>
-                <p className="text-xs text-gray-500 mb-4">
-                  Disponíveis após aprovação da Business Profile API — {result.pendingMetrics.reduce((s, m) => s + m.maxScore, 0)} pontos adicionais.
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {result.pendingMetrics.map((m) => (
-                    <MetricCard key={m.id} metric={m} />
+                      {r.rating && <span className="text-xs text-muted-foreground shrink-0">★ {r.rating.toFixed(1)}</span>}
+                    </button>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Exemplo: <span className="text-foreground">Pizzaria Bella Napoli</span>
+            </p>
           </div>
-        )}
-      </div>
-    </main>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section className="border-t border-border px-4 py-20 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-6xl">
+          <div className="text-center">
+            <h2 className="font-display text-2xl font-bold text-foreground sm:text-3xl">
+              Tudo que você precisa saber sobre seu perfil
+            </h2>
+            <p className="mt-4 text-muted-foreground">
+              15 métricas analisadas em segundos, com relatório completo para compartilhar.
+            </p>
+          </div>
+          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              { icon: Search, title: "Busca Pública", desc: "Analise qualquer negócio sem precisar de acesso. Ideal para prospecção." },
+              { icon: Shield, title: "Dados Privados do GBP", desc: "Com login, acesse reviews, posts, performance e verificação do perfil." },
+              { icon: FileText, title: "Relatório em PDF", desc: "Gere um relatório profissional para enviar ao cliente ou salvar no histórico." },
+            ].map(f => (
+              <div key={f.title} className="rounded-2xl border border-border bg-card p-6 transition-all hover:border-primary/30 hover:-translate-y-0.5">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                  <f.icon className="h-5 w-5 text-primary" />
+                </div>
+                <h3 className="mt-4 font-display text-lg font-semibold text-foreground">{f.title}</h3>
+                <p className="mt-2 text-sm text-muted-foreground">{f.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="border-t border-border px-4 py-20 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-3xl text-center">
+          <h2 className="font-display text-2xl font-bold text-foreground sm:text-3xl">
+            Pronto para analisar seu perfil?
+          </h2>
+          <p className="mt-4 text-muted-foreground">
+            Leva menos de 1 minuto. É gratuito e não precisa de cartão.
+          </p>
+          <button
+            onClick={() => document.querySelector("input")?.focus()}
+            className="mt-8 inline-flex items-center gap-2 rounded-2xl bg-primary px-8 py-4 font-display text-lg font-semibold text-primary-foreground transition-all hover:bg-primary/90 hover:glow-indigo"
+          >
+            Começar agora
+            <ArrowRight className="h-5 w-5" />
+          </button>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-border px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl text-center text-sm text-muted-foreground">
+          <p>Perfil Nota 10 — Ferramenta de análise Google Business Profile</p>
+          <p className="mt-1">Criado por Mengue Digital</p>
+        </div>
+      </footer>
+    </div>
   );
 }

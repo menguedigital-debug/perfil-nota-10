@@ -1,32 +1,49 @@
 "use client";
+import { motion } from "framer-motion";
 
-interface Props {
+interface ScoreCircleProps {
   score: number;
+  maxScore?: number;
+  size?: number;
+  strokeWidth?: number;
 }
 
-export function ScoreCircle({ score }: Props) {
-  const label = score >= 80 ? "BOM" : score >= 50 ? "RAZOÁVEL" : "FRACO";
-  const color = score >= 80 ? "#22c55e" : score >= 50 ? "#f59e0b" : "#ef4444";
-  const circumference = 2 * Math.PI * 54;
-  const offset = circumference - (score / 100) * circumference;
+export function ScoreCircle({ score, maxScore = 100, size = 180, strokeWidth = 12 }: ScoreCircleProps) {
+  const percentage = Math.min((score / Math.max(maxScore, 1)) * 100, 100);
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const dashOffset = circumference - (percentage / 100) * circumference;
+
+  const color = percentage >= 80
+    ? "var(--color-status-good)"
+    : percentage >= 40
+    ? "var(--color-status-fair)"
+    : "var(--color-status-poor)";
 
   return (
-    <div className="flex flex-col items-center gap-2">
-      <svg width="140" height="140" viewBox="0 0 120 120">
-        <circle cx="60" cy="60" r="54" fill="none" stroke="#e5e7eb" strokeWidth="10" />
-        <circle
-          cx="60" cy="60" r="54" fill="none"
-          stroke={color} strokeWidth="10"
+    <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none"
+          stroke="oklch(0.18 0.06 270)" strokeWidth={strokeWidth} />
+        <motion.circle cx={size / 2} cy={size / 2} r={radius} fill="none"
+          stroke={color} strokeWidth={strokeWidth} strokeLinecap="round"
           strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          strokeLinecap="round"
-          transform="rotate(-90 60 60)"
-          style={{ transition: "stroke-dashoffset 0.8s ease" }}
-        />
-        <text x="60" y="55" textAnchor="middle" fontSize="28" fontWeight="bold" fill={color}>{score}</text>
-        <text x="60" y="75" textAnchor="middle" fontSize="13" fill="#6b7280">{label}</text>
+          initial={{ strokeDashoffset: circumference }}
+          animate={{ strokeDashoffset: dashOffset }}
+          transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }} />
       </svg>
-      <p className="text-sm text-gray-500 font-medium">Pontuação Geral</p>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <motion.span className="font-display text-5xl font-bold" style={{ color }}
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.3, duration: 0.5 }}>
+          {Math.round(percentage)}
+        </motion.span>
+        <motion.span className="mt-1 text-sm text-muted-foreground"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}>
+          Nota
+        </motion.span>
+      </div>
     </div>
   );
 }
