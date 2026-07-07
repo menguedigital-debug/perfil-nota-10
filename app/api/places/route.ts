@@ -8,6 +8,11 @@ const FIELDS = [
   "formatted_address", "formatted_phone_number", "website",
   "opening_hours", "photos", "types", "business_status",
   "editorial_summary", "reviews", "url", "vicinity",
+  // Atributos públicos
+  "wheelchair_accessible_entrance", "dine_in", "delivery", "takeout",
+  "serves_beer", "serves_wine", "serves_breakfast", "serves_lunch",
+  "serves_dinner", "serves_brunch", "serves_vegetarian_food",
+  "reservable", "price_level", "curbside_pickup",
 ].join(",");
 
 async function getPlaceDetails(placeId: string) {
