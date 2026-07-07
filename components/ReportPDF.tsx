@@ -134,7 +134,10 @@ function MetricRow({ m }: { m: MetricResult }) {
 // ── DOCUMENTO PRINCIPAL ───────────────────────────────────────────────────────
 export function ReportPDF({ result }: { result: AnalysisResult }) {
   const { place, overallScore, metrics, pendingMetrics } = result;
-  const allMetrics = [...metrics, ...pendingMetrics];
+  const statusOrder = { fraco: 0, razoavel: 1, bom: 2 };
+  const allMetrics = [...metrics, ...pendingMetrics].sort(
+    (a, b) => (statusOrder[a.status as keyof typeof statusOrder] ?? 3) - (statusOrder[b.status as keyof typeof statusOrder] ?? 3)
+  );
   const totalWeak = allMetrics.filter(m => m.status === "fraco").length;
   const totalFair = allMetrics.filter(m => m.status === "razoavel").length;
   const totalGood = allMetrics.filter(m => m.status === "bom").length;

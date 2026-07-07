@@ -107,8 +107,12 @@ export default function AnalisePage() {
     );
   }
 
-  const publicMetrics = result.metrics;
-  const privateMetrics = result.pendingMetrics;
+  const statusOrder = { fraco: 0, razoavel: 1, bom: 2 };
+  const sortMetrics = (arr: typeof result.metrics) =>
+    [...arr].sort((a, b) => (statusOrder[a.status as keyof typeof statusOrder] ?? 3) - (statusOrder[b.status as keyof typeof statusOrder] ?? 3));
+
+  const publicMetrics = sortMetrics(result.metrics);
+  const privateMetrics = sortMetrics(result.pendingMetrics);
   const goodCount = [...publicMetrics, ...privateMetrics].filter(m => m.status === "bom").length;
   const fairCount = [...publicMetrics, ...privateMetrics].filter(m => m.status === "razoavel").length;
   const poorCount = [...publicMetrics, ...privateMetrics].filter(m => m.status === "fraco").length;
