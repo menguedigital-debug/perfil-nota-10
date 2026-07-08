@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getSupabase } from "@/lib/supabase";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const supabase = getSupabase();
   if (!supabase) return NextResponse.json({ analyses: [] });
 
@@ -11,12 +11,17 @@ export async function GET() {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
 
-  const { data, error } = await supabase
+  const full = req.nextUrl.searchParams.get("full") === "true";
+
+  let query = supabase
     .from("analyses")
     .select("id, place_id, place_name, score, created_at")
     .eq("user_email", session.user.email)
-    .order("created_at", { ascending: false })
-    .limit(10);
+    .order("created_at", { ascending: false });
+
+  if (!full) query = query.limit(10);
+
+  const { data, error } = await query;
 
   if (error) return NextResponse.json({ analyses: [] });
   return NextResponse.json({ analyses: data });
