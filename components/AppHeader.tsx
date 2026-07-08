@@ -24,6 +24,9 @@ export function AppHeader() {
           <Link href="/" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
             Início
           </Link>
+          <Link href="/prospeccao" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+            Prospecção
+          </Link>
           {status === "authenticated" && (
             <Link href="/dashboard" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
               Dashboard
@@ -58,6 +61,7 @@ export function AppHeader() {
         <div className="border-t border-border bg-background px-4 py-4 md:hidden">
           <nav className="flex flex-col gap-3">
             <Link href="/" className="text-sm font-medium text-muted-foreground" onClick={() => setMobileOpen(false)}>Início</Link>
+            <Link href="/prospeccao" className="text-sm font-medium text-muted-foreground" onClick={() => setMobileOpen(false)}>Prospecção</Link>
             {status === "authenticated" && (
               <Link href="/dashboard" className="text-sm font-medium text-muted-foreground" onClick={() => setMobileOpen(false)}>Dashboard</Link>
             )}
